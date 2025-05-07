@@ -1,0 +1,205 @@
+"""
+FreeCAD Macro - 3-Link Robot 
+"""
+
+import FreeCAD as App
+import Part
+from FreeCAD import Base
+import math
+
+# Document setup
+try:
+    doc = App.activeDocument()
+    if doc is None:
+        doc = App.newDocument("Robot")
+except:
+    doc = App.newDocument("Robot")
+
+# Dimensions
+BASE_WIDTH = 200
+BASE_LENGTH = 200
+BASE_HEIGHT = 50
+
+LINK_WIDTH = 40
+LINK_DEPTH = 40
+LINK1_HEIGHT = 180
+LINK2_HEIGHT = 180
+LINK3_HEIGHT = 180
+
+JOINT_RADIUS = 25
+JOINT_HEIGHT = 40
+
+EE_WIDTH = 80
+EE_LENGTH = 60
+EE_HEIGHT = 20
+
+# Colors
+BASE_COLOR = (0.2, 0.2, 0.2)  # Dark gray
+LINK_COLOR = (0.8, 0.0, 0.0)   # Red - same color for all links
+JOINT_COLOR = (0.9, 0.9, 0.0)  # Yellow
+EE_COLOR = (0.8, 0.4, 0.0)     # Orange
+
+# Color setter
+def set_color(obj, color):
+    try:
+        obj.ViewObject.ShapeColor = color
+    except:
+        pass
+
+# Base
+base = Part.makeBox(BASE_LENGTH, BASE_WIDTH, BASE_HEIGHT, 
+                   Base.Vector(-BASE_LENGTH/2, -BASE_WIDTH/2, 0))
+base_obj = doc.addObject("Part::Feature", "Base")
+base_obj.Shape = base
+set_color(base_obj, BASE_COLOR)
+
+# Joint0
+joint0_pos = Base.Vector(0, 0, BASE_HEIGHT)
+joint0_cyl = Part.makeCylinder(JOINT_RADIUS, JOINT_HEIGHT, joint0_pos, 
+                             Base.Vector(0, 1, 0))  # Y-axis rotation
+joint0 = doc.addObject("Part::Feature", "Joint0")
+joint0.Shape = joint0_cyl
+set_color(joint0, JOINT_COLOR)
+
+# Link1
+link1_box = Part.makeBox(LINK_WIDTH, LINK_DEPTH, LINK1_HEIGHT, 
+                        Base.Vector(-LINK_WIDTH/2, -LINK_DEPTH/2, BASE_HEIGHT + JOINT_HEIGHT/2))
+link1 = doc.addObject("Part::Feature", "Link1")
+link1.Shape = link1_box
+set_color(link1, LINK_COLOR)
+
+# Joint1
+joint1_pos = Base.Vector(0, 0, BASE_HEIGHT + JOINT_HEIGHT/2 + LINK1_HEIGHT)
+joint1_cyl = Part.makeCylinder(JOINT_RADIUS, JOINT_HEIGHT, joint1_pos, 
+                             Base.Vector(0, 1, 0))  # Y-axis rotation
+joint1 = doc.addObject("Part::Feature", "Joint1")
+joint1.Shape = joint1_cyl
+set_color(joint1, JOINT_COLOR)
+
+# Link2
+link2_box = Part.makeBox(LINK_WIDTH, LINK_DEPTH, LINK2_HEIGHT, 
+                        Base.Vector(-LINK_WIDTH/2, -LINK_DEPTH/2, 
+                                  BASE_HEIGHT + JOINT_HEIGHT/2 + LINK1_HEIGHT + JOINT_HEIGHT/2))
+link2 = doc.addObject("Part::Feature", "Link2")
+link2.Shape = link2_box
+set_color(link2, LINK_COLOR)
+
+# Joint2
+joint2_pos = Base.Vector(0, 0, BASE_HEIGHT + JOINT_HEIGHT/2 + LINK1_HEIGHT + 
+                       JOINT_HEIGHT/2 + LINK2_HEIGHT)
+joint2_cyl = Part.makeCylinder(JOINT_RADIUS, JOINT_HEIGHT, joint2_pos, 
+                             Base.Vector(0, 1, 0))  # Y-axis rotation
+joint2 = doc.addObject("Part::Feature", "Joint2")
+joint2.Shape = joint2_cyl
+set_color(joint2, JOINT_COLOR)
+
+# Link3
+link3_box = Part.makeBox(LINK_WIDTH, LINK_DEPTH, LINK3_HEIGHT, 
+                        Base.Vector(-LINK_WIDTH/2, -LINK_DEPTH/2, 
+                                  BASE_HEIGHT + JOINT_HEIGHT/2 + LINK1_HEIGHT + 
+                                  JOINT_HEIGHT/2 + LINK2_HEIGHT + JOINT_HEIGHT/2))
+link3 = doc.addObject("Part::Feature", "Link3")
+link3.Shape = link3_box
+set_color(link3, LINK_COLOR)
+
+# Joint3
+joint3_pos = Base.Vector(0, 0, BASE_HEIGHT + JOINT_HEIGHT/2 + LINK1_HEIGHT + 
+                       JOINT_HEIGHT/2 + LINK2_HEIGHT + JOINT_HEIGHT/2 + LINK3_HEIGHT)
+joint3_cyl = Part.makeCylinder(JOINT_RADIUS, JOINT_HEIGHT, joint3_pos, 
+                             Base.Vector(0, 1, 0))  # Y-axis rotation
+joint3 = doc.addObject("Part::Feature", "Joint3")
+joint3.Shape = joint3_cyl
+set_color(joint3, JOINT_COLOR)
+
+# End effector - redesigned to match image
+ee_base_height = 30
+ee_base_width = 80
+ee_base_length = 100
+ee_channel_width = 40
+ee_channel_depth = 50
+ee_rail_height = 20
+ee_rail_width = 15
+ee_rail_length = ee_base_length
+
+ee_z_pos = BASE_HEIGHT + JOINT_HEIGHT/2 + LINK1_HEIGHT + JOINT_HEIGHT/2 + LINK2_HEIGHT + JOINT_HEIGHT/2 + LINK3_HEIGHT + JOINT_HEIGHT/2
+
+# Create base with channel
+ee_base_pos = Base.Vector(-ee_base_length/2, -ee_base_width/2, ee_z_pos)
+ee_base = Part.makeBox(ee_base_length, ee_base_width, ee_base_height, ee_base_pos)
+
+# Create channel by subtracting from base
+channel_pos = Base.Vector(-ee_channel_depth/2, -ee_channel_width/2, ee_z_pos)
+channel = Part.makeBox(ee_channel_depth, ee_channel_width, ee_base_height, channel_pos)
+ee_with_channel = ee_base.cut(channel)
+
+# Create the two rails
+left_rail_pos = Base.Vector(-ee_rail_length/2, -ee_base_width/2, ee_z_pos + ee_base_height)
+left_rail = Part.makeBox(ee_rail_length, ee_rail_width, ee_rail_height, left_rail_pos)
+
+right_rail_pos = Base.Vector(-ee_rail_length/2, ee_base_width/2 - ee_rail_width, ee_z_pos + ee_base_height)
+right_rail = Part.makeBox(ee_rail_length, ee_rail_width, ee_rail_height, right_rail_pos)
+
+# Create rounded cutout for right side (as shown in image)
+cutout_radius = 30
+cutout_pos = Base.Vector(ee_base_length/2 - cutout_radius, 0, ee_z_pos + ee_base_height/2)
+cutout_cyl = Part.makeCylinder(cutout_radius, ee_base_height, cutout_pos, Base.Vector(0, 1, 0))
+
+# Create sliding grippers
+gripper_width = 15
+gripper_length = 40
+gripper_height = 50
+gripper_offset = 25  # Initial position offset from center
+
+left_gripper_pos = Base.Vector(-gripper_length/2, -ee_base_width/2 - gripper_width, ee_z_pos)
+left_gripper = Part.makeBox(gripper_length, gripper_width, gripper_height, left_gripper_pos)
+
+right_gripper_pos = Base.Vector(-gripper_length/2, ee_base_width/2, ee_z_pos)
+right_gripper = Part.makeBox(gripper_length, gripper_width, gripper_height, right_gripper_pos)
+
+# Combine all parts and apply cutout
+try:
+    ee_temp = ee_with_channel.fuse(left_rail).fuse(right_rail)
+    ee_shape = ee_temp.cut(cutout_cyl).fuse(left_gripper).fuse(right_gripper)
+except:
+    ee_shape = ee_base
+    print("Simple end effector used")
+
+end_effector = doc.addObject("Part::Feature", "EndEffector")
+end_effector.Shape = ee_shape
+set_color(end_effector, EE_COLOR)
+
+# Organized objects
+robot_group = doc.addObject("App::DocumentObjectGroup", "Robot")
+robot_group.addObject(base_obj)
+robot_group.addObject(joint0)
+robot_group.addObject(link1)
+robot_group.addObject(joint1)
+robot_group.addObject(link2)
+robot_group.addObject(joint2)
+robot_group.addObject(link3)
+robot_group.addObject(joint3)
+robot_group.addObject(end_effector)
+
+# Single selectable object
+try:
+    compound_parts = [base, joint0_cyl, link1_box, joint1_cyl, link2_box, 
+                     joint2_cyl, link3_box, joint3_cyl, ee_shape]
+    robot_compound = Part.makeCompound(compound_parts)
+    compound_obj = doc.addObject("Part::Feature", "RobotCompound")
+    compound_obj.Shape = robot_compound
+    compound_obj.ViewObject.Visibility = False
+except:
+    print("Compound object creation failed")
+
+# Document update
+doc.recompute()
+
+# View settings
+try:
+    import FreeCADGui
+    FreeCADGui.SendMsgToActiveView("ViewFit")
+    FreeCADGui.activeDocument().activeView().viewIsometric()
+except:
+    print("Console mode detected")
+
+print("Robot created")
